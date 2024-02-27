@@ -53,6 +53,7 @@ public struct ConfettiCannon: View {
     @Binding var counter:Int
     @StateObject private var confettiConfig:ConfettiConfig
 
+    @Binding var confettis: [ConfettiType]
     @State var animate:[Bool] = []
     @State var finishedAnimationCounter = 0
     @State var firstAppear = false
@@ -89,6 +90,8 @@ public struct ConfettiCannon: View {
         self._counter = counter
         var shapes = [AnyView]()
         
+        _confettis = Binding(get: { [] }, set: { _ in })
+        
         for confetti in confettis{
             for color in colors{
                 switch confetti {
@@ -118,6 +121,54 @@ public struct ConfettiCannon: View {
         ))
     }
 
+    public init(counter:Binding<Int>,
+         num:Int = 20,
+         confettis:Binding<[ConfettiType]>,
+         colors:[Color] = [.blue, .red, .green, .yellow, .pink, .purple, .orange],
+         confettiSize:CGFloat = 10.0,
+         rainHeight: CGFloat = 600.0,
+         fadesOut:Bool = true,
+         opacity:Double = 1.0,
+         openingAngle:Angle = .degrees(60),
+         closingAngle:Angle = .degrees(120),
+         radius:CGFloat = 300,
+         repetitions:Int = 0,
+         repetitionInterval:Double = 1.0
+    ) {
+        self._counter = counter
+        var shapes = [AnyView]()
+        
+        _confettis = confettis
+        
+        for confetti in confettis.wrappedValue {
+            for color in colors{
+                switch confetti {
+                case .shape(_):
+                    shapes.append(AnyView(confetti.view.foregroundColor(color).frame(width: confettiSize, height: confettiSize, alignment: .center)))
+                case .image(_):
+                    shapes.append(AnyView(confetti.view.frame(maxWidth:confettiSize, maxHeight: confettiSize)))
+                default:
+                    shapes.append(AnyView(confetti.view.foregroundColor(color).font(.system(size: confettiSize))))
+                }
+            }
+        }
+    
+        _confettiConfig = StateObject(wrappedValue: ConfettiConfig(
+            num: num,
+            shapes: shapes,
+            colors: colors,
+            confettiSize: confettiSize,
+            rainHeight: rainHeight,
+            fadesOut: fadesOut,
+            opacity: opacity,
+            openingAngle: openingAngle,
+            closingAngle: closingAngle,
+            radius: radius,
+            repetitions: repetitions,
+            repetitionInterval: repetitionInterval
+        ))
+    }
+    
     public var body: some View {
         ZStack{
             ForEach(finishedAnimationCounter..<animate.count, id:\.self){ i in
@@ -141,6 +192,23 @@ public struct ConfettiCannon: View {
                     }
                 }
             }
+        }
+        .onChange(of: confettis) { newValue in
+            var shapes = [AnyView]()
+            for confetti in newValue {
+                for color in confettiConfig.colors {
+                    switch confetti {
+                    case .shape(_):
+                            shapes.append(AnyView(confetti.view.foregroundColor(color).frame(width: confettiConfig.confettiSize, height: confettiConfig.confettiSize, alignment: .center)))
+                    case .image(_):
+                            shapes.append(AnyView(confetti.view.frame(maxWidth:confettiConfig.confettiSize, maxHeight: confettiConfig.confettiSize)))
+                    default:
+                            shapes.append(AnyView(confetti.view.foregroundColor(color).font(.system(size: confettiConfig.confettiSize))))
+                    }
+                }
+            }
+            
+            confettiConfig.shapes = shapes
         }
     }
 }
